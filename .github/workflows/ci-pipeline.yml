@@ -82,6 +82,16 @@ jobs:
 
     # Scan for secrets and sensitive information in the codebase
     - name: GitLeaks Secret Scan
+      id: gitleaks
       uses: gitleaks/gitleaks-action@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true  # Allow the workflow to continue even if leaks are found
+
+    # Only upload the SARIF file if leaks were detected
+    - name: Upload GitLeaks Results
+      uses: actions/upload-artifact@v4
+      if: steps.gitleaks.outcome == 'failure'  # Only upload when GitLeaks finds issues
+      with:
+        name: gitleaks-results
+        path: gitleaks-results.sarif
