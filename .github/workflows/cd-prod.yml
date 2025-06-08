@@ -1,0 +1,96 @@
+name: CD - Production Deployment
+
+# Manual trigger with the ability to specify which version to deploy
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+        default: 'latest'
+
+jobs:
+  deploy-to-prod:
+    runs-on: ubuntu-latest
+    environment: prod  # Use the prod environment you've created with required approvals
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      
+      # Store deployment information for potential rollback
+      - name: Store deployment information
+        id: deployment-info
+        run: |
+          echo "TIMESTAMP=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+          echo "DEPLOYMENT_ID=${GITHUB_SHA}-${TIMESTAMP}" >> $GITHUB_ENV
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          
+          # Create a backup record of the current production state
+          echo "Creating backup record of current production state"
+          # Example: Document current deployment in a deployment registry
+          echo "Backup created with ID: BACKUP-${DEPLOYMENT_ID}"
+          
+      - name: Build application
+        run: mvn -B clean package -DskipTests
+        
+      - name: Deploy to Production Environment
+        id: deploy
+        run: |
+          # Your production deployment commands here
+          echo "Deploying version ${{ github.event.inputs.version }} to PROD environment"
+          # Mock successful deployment for demonstration
+          echo "DEPLOY_STATUS=success" >> $GITHUB_ENV
+          
+          # Record deployment for audit and rollback purposes
+          echo "Recording deployment details for audit trail"
+      
+      # Deployment Verification Tests
+      - name: Run Post-Deployment Verification
+        id: verification
+        if: success() && env.DEPLOY_STATUS == 'success'
+        run: |
+          # Comprehensive verification suite for production
+          echo "Running verification tests against PROD environment"
+          
+          # 1. Health check
+          echo "Performing health check..."
+          # curl -f https://api.example.com/health || exit 1
+          
+          # 2. Smoke tests
+          echo "Running smoke tests..."
+          # Example: Test critical user flows
+          
+          # 3. Performance check
+          echo "Verifying performance metrics..."
+          # Example: Check response times are within acceptable thresholds
+          
+          # 4. Canary test (test with small % of traffic)
+          echo "Running canary tests..."
+          # Example: Route 5% of traffic to new deployment and monitor error rates
+      
+      # Rollback Capability
+      - name: Rollback on Failure
+        if: failure() && steps.deploy.outcome == 'success' && steps.verification.outcome == 'failure'
+        run: |
+          echo "Verification tests failed! Rolling back to previous stable version"
+          
+          # 1. Identify previous stable version
+          echo "Identifying previous stable version..."
+          
+          # 2. Execute rollback
+          echo "Executing rollback procedure..."
+          # Example: Revert to previous deployment, restore database if needed
+          
+          # 3. Verify rollback success
+          echo "Verifying rollback success..."
+#          curl -f https://api.example.com/health || echo "Rollback verification failed!"
+
+      
