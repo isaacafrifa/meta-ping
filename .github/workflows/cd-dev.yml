@@ -1,0 +1,73 @@
+name: CD - Development Deployment
+
+# Trigger when CI pipeline completes successfully on main branch
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy-to-dev:
+    # Only run if the CI pipeline was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: dev  # Use the dev environment we have created
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          
+      - name: Build application
+        run: mvn -B clean package -DskipTests
+        
+      # Store the current version for potential rollback
+      - name: Store deployment version
+        id: version
+        run: |
+          echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+          echo "TIMESTAMP=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+          echo "DEPLOYMENT_ID=${GITHUB_SHA}-${TIMESTAMP}" >> $GITHUB_ENV
+          
+
+      - name: Deploy to Dev Environment
+        id: deploy
+        run: |
+          # Your deployment commands here
+          # For example: (--MOCKING FOR NOW--)
+          # - Deploy to a dev server
+          # - Update a dev Kubernetes namespace
+          # - Push to a dev container registry
+          echo "Deploying to DEV environment"
+          # Mock successful deployment for demonstration
+          echo "DEPLOY_STATUS=success" >> $GITHUB_ENV
+        
+
+      # Deployment Verification Tests
+      - name: Run Post-Deployment Tests
+        id: verification
+        if: success() && env.DEPLOY_STATUS == 'success'
+        run: |
+          # Run smoke tests against the deployed application
+          echo "Running verification tests against DEV environment"
+          # Example: Use curl to check if the application is responding
+#          curl -f https://dev-api.example.com/health || exit 1
+
+      # Rollback Capability
+      - name: Rollback on Failure
+        if: failure() && steps.deploy.outcome == 'success' && steps.verification.outcome == 'failure'
+        run: |
+          echo "Verification tests failed! Rolling back from version ${{ env.VERSION }} (Deployment ID: ${{ env.DEPLOYMENT_ID }})"
+          # Your rollback commands here, using the version information (--MOCKING FOR NOW--)
+          # For example:
+          # - kubectl rollback deployment myapp to previous version
+          # - aws elasticbeanstalk rollback-environment --environment-id $ENVIRONMENT_ID --version-label $PREVIOUS_VERSION
+          # - cf rollback $APP_NAME $PREVIOUS_VERSION
+          echo "Rollback from version ${{ env.VERSION }} completed"
