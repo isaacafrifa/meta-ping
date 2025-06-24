@@ -1,4 +1,4 @@
-# Event-cast
+# Meta-Ping
 
 This is a serverless application that implements a simple string reversal function using Spring Cloud Function.
 
