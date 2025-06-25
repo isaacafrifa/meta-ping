@@ -12,9 +12,9 @@ import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest(classes = EventCastApplication.class,
+@SpringBootTest(classes = MetaPingApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class EventCastApplicationTests {
+class MetaPingApplicationTests {
 
     @Autowired
     private TestRestTemplate testRestTemplate;
