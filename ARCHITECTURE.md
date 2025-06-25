@@ -7,12 +7,12 @@ This document describes the architecture of the Meta-Ping file notification syst
 ```mermaid
 flowchart TD
     User["User/File Uploader"] -->|Upload file| S3["S3 Bucket"]
-    S3 -->|ObjectCreated:Put event| Lambda["Lambda Function\n(Spring Cloud Function)"]
+    S3 -->|ObjectCreated:Put event| Lambda["Lambda Function (Spring Cloud Function)"]
     Lambda -->|Extract metadata| Lambda
     Lambda -->|Compose notification| Lambda
     Lambda -->|Publish metadata message| SNS["SNS Topic"]
     SNS -->|Notification| Email["Email Subscribers"]
-    SNS -->|Notification| Other["Other SNS Subscribers\n(optional)"]
+    SNS -->|Notification| Other["Other SNS Subscribers (optional)"]
 ```
 
 ## Component Details
