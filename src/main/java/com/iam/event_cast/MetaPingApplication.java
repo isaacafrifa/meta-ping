@@ -12,11 +12,11 @@ import java.util.function.Function;
 
 
 @SpringBootApplication
-public class EventCastApplication {
-	private static final Logger logger = LoggerFactory.getLogger(EventCastApplication.class);
+public class MetaPingApplication {
+	private static final Logger logger = LoggerFactory.getLogger(MetaPingApplication.class);
 
 	public static void main(String[] args) {
-		SpringApplication.run(EventCastApplication.class, args);
+		SpringApplication.run(MetaPingApplication.class, args);
 	}
 
 	@Bean
