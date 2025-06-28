@@ -30,6 +30,7 @@ jobs:
     # Build the project and run tests
     - name: Build and test with Maven
       run: mvn -B clean verify
+      timeout-minutes: 15 # timeout for just this step
 
     # Upload test reports if tests fail
     - name: Upload Test Reports (if failure)
@@ -44,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run after build and tests pass
     needs: build-and-test
+    timeout-minutes: 15 # timeout for this 'static-analysis' job
 
     steps:
     - name: Checkout code
@@ -72,6 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run after build and tests pass
     needs: build-and-test
+    timeout-minutes: 10 # timeout for 'security-scan' job
 
     steps:
     - name: Checkout code
