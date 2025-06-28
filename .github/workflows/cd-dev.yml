@@ -39,6 +39,7 @@ jobs:
 
       - name: Deploy to Dev Environment
         id: deploy
+        timeout-minutes: 10
         run: |
           # Your deployment commands here
           # For example: (--MOCKING FOR NOW--)
@@ -53,6 +54,7 @@ jobs:
       # Deployment Verification Tests
       - name: Run Post-Deployment Tests
         id: verification
+        timeout-minutes: 10 #timeout for this step
         if: success() && env.DEPLOY_STATUS == 'success'
         run: |
           # Run smoke tests against the deployed application
