@@ -17,7 +17,7 @@
     </root>
 
     <!-- Application-specific logger -->
-    <logger name="com.iam.event_cast" level="DEBUG" additivity="false">
+    <logger name="com.iam.metaping" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE" />
     </logger>
 

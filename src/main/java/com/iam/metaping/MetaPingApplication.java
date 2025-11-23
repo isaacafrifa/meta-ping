@@ -1,4 +1,4 @@
-package com.iam.event_cast;
+package com.iam.metaping;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class MetaPingApplication {
 
 				logger.debug("String reversed successfully: '{}' -> '{}'", value, result);
 				return result;
-			} catch (Exception e) {
+			} catch (IllegalArgumentException e) {
 				logger.error("Error reversing string: {}", value, e);
 				throw e;
 			} finally {

@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.iam</groupId>
-	<artifactId>event-cast</artifactId>
+	<artifactId>meta-ping</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>event-cast</name>
 	<description>Demo project for Spring Boot</description>
