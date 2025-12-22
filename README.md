@@ -24,20 +24,6 @@ flowchart TD
 - API Gateway endpoint for manual file processing or status checks.
 - Lambda writes metadata + processing logs into S3 (or DynamoDB).
 
+### Notifications toggle
 
-## Current Implementation
-
-The current version implements a simple string reversal function using Spring Cloud Function.
-
-## How to Use String Reversal Function
-
-Send a POST request to `/reverseString` with a text payload to reverse a string:
-
-```bash
-curl -X POST http://localhost:8080/reverseString -H "Content-Type: text/plain" -d "Hello, World!"
-```
-
-Response:
-```
-!dlroW ,olleH
-```
+Notifications are optional. The `MetaNotifier` bean is only created when `notifications.enabled=true` (or `NOTIFICATIONS_ENABLED=true` in the environment). This allows running the function without SNS configured (e.g., local dev/CI) while still processing S3 events normally. When disabled, notification publishing is skipped.
