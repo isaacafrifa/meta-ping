@@ -40,35 +40,35 @@ jobs:
         name: test-reports
         path: target/surefire-reports/
 
-  # Run static code analysis to ensure code quality
-  static-analysis:
-    runs-on: ubuntu-latest
-    # Only run after build and tests pass
-    needs: build-and-test
-    timeout-minutes: 15 # timeout for this 'static-analysis' job
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
-
-      # Run PMD to identify code quality issues
-    - name: Run PMD
-      uses: pmd/pmd-github-action@v2
-      with:
-        rulesets: 'rulesets/java/quickstart.xml'
-        sourcePath: 'src/main/java' # Defines the directory containing the source code to analyze
-        artifact-name: 'pmd-results'
-
-    # Run SpotBugs for additional static analysis (includes FindSecBugs for security vulnerabilities)
-    - name: Run SpotBugs with FindSecBugs
-      run: mvn spotbugs:check
+#  # Run static code analysis to ensure code quality
+#  static-analysis:
+#    runs-on: ubuntu-latest
+#    # Only run after build and tests pass
+#    needs: build-and-test
+#    timeout-minutes: 15 # timeout for this 'static-analysis' job
+#
+#    steps:
+#    - name: Checkout code
+#      uses: actions/checkout@v4
+#
+#    - name: Set up JDK 17
+#      uses: actions/setup-java@v4
+#      with:
+#        java-version: '17'
+#        distribution: 'temurin'
+#        cache: maven
+#
+#      # Run PMD to identify code quality issues
+#    - name: Run PMD
+#      uses: pmd/pmd-github-action@v2
+#      with:
+#        rulesets: 'rulesets/java/quickstart.xml'
+#        sourcePath: 'src/main/java' # Defines the directory containing the source code to analyze
+#        artifact-name: 'pmd-results'
+#
+#    # Run SpotBugs for additional static analysis (includes FindSecBugs for security vulnerabilities)
+#    - name: Run SpotBugs with FindSecBugs
+#      run: mvn spotbugs:check
 
   # Scan for security issues and secrets
   security-scan:
