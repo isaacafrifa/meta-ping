@@ -2,8 +2,26 @@
 
 A serverless application for file processing, metadata extraction and SNS notification using AWS S3, Lambda, and SNS.
 
-## Architecture Overview
+## Tech Stack
 
+### Core Frameworks & Languages
+- Java
+- Spring Boot
+- **Spring Cloud Function**: Abstracts the business logic to be portable across cloud providers (AWS Lambda).
+- Maven
+### Cloud Services (AWS)
+- AWS Lambda
+- AWS S3
+- AWS SNS
+- **AWS SDK for Java**: Used for programmatic interaction with AWS services.
+### Quality & Security (CI/CD)
+- **GitHub Actions**: Automates the build, test, and deployment pipelines.
+- **SonarCloud**: Static analysis for code quality, bugs, and technical debt.
+- **JaCoCo**: Generates code coverage reports for SonarCloud.
+- **GitLeaks**: Detects hardcoded secrets and credentials in the codebase.
+
+
+## Architecture Overview
 Meta-Ping uses a serverless event-driven architecture:
 
 1. Files are uploaded to an S3 bucket
