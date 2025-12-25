@@ -51,14 +51,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Run PMD to identify code quality issues
-    - name: Run PMD
-      uses: pmd/pmd-github-action@v1
-      with:
-        rulesets: 'rulesets/java/quickstart.xml'
-        sourcePath: 'src/main/java' # Defines the directory containing the source code to analyze
-
-    # Run SpotBugs for additional static analysis (includes FindSecBugs for security vulnerabilities)
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -66,6 +58,15 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
+      # Run PMD to identify code quality issues
+    - name: Run PMD
+      uses: pmd/pmd-github-action@v2
+      with:
+        rulesets: 'rulesets/java/quickstart.xml'
+        sourcePath: 'src/main/java' # Defines the directory containing the source code to analyze
+        artifact-name: 'pmd-results'
+
+    # Run SpotBugs for additional static analysis (includes FindSecBugs for security vulnerabilities)
     - name: Run SpotBugs with FindSecBugs
       run: mvn spotbugs:check
 
