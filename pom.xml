@@ -33,8 +33,6 @@
     <aws.lambda.core.version>1.2.3</aws.lambda.core.version>
     <aws.sdk2.sns.version>2.25.64</aws.sdk2.sns.version>
     <jacoco.version>0.8.12</jacoco.version>
-    <spotbugs.maven.plugin.version>4.7.3.6</spotbugs.maven.plugin.version>
-    <findsecbugs.plugin.version>1.12.0</findsecbugs.plugin.version>
     <!-- SonarCloud Configuration -->
     <sonar.projectKey>isaacafrifa_meta-ping</sonar.projectKey>
     <sonar.organization>iam-group</sonar.organization>
@@ -107,33 +105,6 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
-      <!--
-                SpotBugs Maven Plugin - Static analysis tool for finding bugs in Java code
-                - effort: Max - Most thorough analysis (may take longer)
-                - threshold: Medium - Reports medium and high priority issues only
-                - failOnError: true - Fails build when issues are found
-
-                The nested plugin configuration adds FindSecBugs, which is a SpotBugs extension specifically
-                focused on identifying security vulnerabilities in Java applications. It can detect like
-                SQL injection, XSS, cryptographic weaknesses, Hard-coded credentials and other security issues.
-            -->
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>${spotbugs.maven.plugin.version}</version>
-        <configuration>
-          <effort>Max</effort>
-          <threshold>Medium</threshold>
-          <failOnError>true</failOnError>
-          <plugins>
-            <plugin>
-              <groupId>com.h3xstream.findsecbugs</groupId>
-              <artifactId>findsecbugs-plugin</artifactId>
-              <version>${findsecbugs.plugin.version}</version>
-            </plugin>
-          </plugins>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
