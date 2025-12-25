@@ -32,6 +32,7 @@
     <aws.lambda.events.version>3.11.3</aws.lambda.events.version>
     <aws.lambda.core.version>1.2.3</aws.lambda.core.version>
     <aws.sdk2.sns.version>2.25.64</aws.sdk2.sns.version>
+    <sonar.version>5.5.0.6356</sonar.version>
     <jacoco.version>0.8.12</jacoco.version>
     <!-- SonarCloud Configuration -->
     <sonar.projectKey>isaacafrifa_meta-ping</sonar.projectKey>
@@ -105,6 +106,12 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- SonarQube Scanner for Maven: enables running `mvn sonar:sonar` locally and in CI -->
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>${sonar.version}</version>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
