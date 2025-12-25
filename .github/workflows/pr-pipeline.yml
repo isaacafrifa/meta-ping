@@ -3,7 +3,7 @@ name: PR Pipeline
 # This workflow runs on pull requests to the main branch
 on:
   pull_request:
-    types: [ 'opened', 'edited', 'synchronize' ]
+    types: [ 'opened', 'synchronize', 'reopened' ]
     # Prevent running the entire workflow when changes are made to the .md files
     paths-ignore:
       - 'README.md'
