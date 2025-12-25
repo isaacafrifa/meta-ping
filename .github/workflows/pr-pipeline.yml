@@ -59,7 +59,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          level: warning
+          level: error
 
   # Scan for security issues and secrets
   security-scan:
