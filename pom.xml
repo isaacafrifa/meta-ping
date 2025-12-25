@@ -34,6 +34,16 @@
     <aws.sdk2.sns.version>2.25.64</aws.sdk2.sns.version>
     <spotbugs.maven.plugin.version>4.7.3.6</spotbugs.maven.plugin.version>
     <findsecbugs.plugin.version>1.12.0</findsecbugs.plugin.version>
+    <!-- SonarCloud Configuration -->
+    <sonar.projectKey>isaacafrifa_meta-ping</sonar.projectKey>
+    <sonar.organization>iam-group</sonar.organization>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    <sonar.coverage.exclusions>
+      **/MetaPingApplication.java,
+      **/*LambdaHandler.java,
+      **/config/**,
+      **/model/**
+    </sonar.coverage.exclusions>
   </properties>
   <dependencies>
     <dependency>
