@@ -32,6 +32,8 @@
     <aws.lambda.events.version>3.11.3</aws.lambda.events.version>
     <aws.lambda.core.version>1.2.3</aws.lambda.core.version>
     <aws.sdk2.sns.version>2.25.64</aws.sdk2.sns.version>
+    <aws.sdk2.sqs.version>2.25.64</aws.sdk2.sqs.version>
+    <testcontainers.version>1.20.3</testcontainers.version>
     <sonar.version>5.5.0.6356</sonar.version>
     <jacoco.version>0.8.12</jacoco.version>
     <!-- SonarCloud Configuration -->
@@ -87,6 +89,26 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sns</artifactId>
       <version>${aws.sdk2.sns.version}</version>
+    </dependency>
+    <!-- AWS SDK v2 SQS (test usage for verifying SNS delivery via SQS subscription) -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sqs</artifactId>
+      <version>${aws.sdk2.sqs.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Testcontainers: JUnit 5 + LocalStack -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <dependencyManagement>

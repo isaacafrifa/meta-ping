@@ -7,15 +7,16 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.SnsClientBuilder;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
+import java.net.URI;
 
 /**
  * Simple SNS publisher backed by AWS SDK v2.
  * Configuration (application.properties):
  * - aws.sns.topic-arn=<your-topic-arn>
  * - aws.sns.region=<aws-region>
- *
  * Notes:
  * - Values default from environment placeholders: {@code AWS_SNS_TOPIC_ARN} and
  *   {@code AWS_SNS_REGION} (falling back to {@code AWS_REGION}).
@@ -30,20 +31,35 @@ public class SnsPublisher {
     private final String topicArn;
     private final String region;
     private final SnsClient snsClient; // built once when configured; null means publishing is disabled
+    private final String endpoint; // optional endpoint override
 
     public SnsPublisher(SnsProperties snsProperties) {
         String pTopicArn = snsProperties != null ? snsProperties.getTopicArn() : null;
         String pRegion = snsProperties != null ? snsProperties.getRegion() : null;
+        String pEndpoint = snsProperties != null ? snsProperties.getEndpoint() : null;
 
         this.topicArn = pTopicArn == null ? "" : pTopicArn.trim();
         this.region = pRegion == null ? "" : pRegion.trim();
+        this.endpoint = pEndpoint == null ? "" : pEndpoint.trim();
 
         // Build once if values look valid; otherwise leave snsClient null (disabled sentinel).
         if (isConfigured()) {
-            this.snsClient = SnsClient.builder()
+            SnsClientBuilder builder = SnsClient.builder()
                     .credentialsProvider(DefaultCredentialsProvider.create())
-                    .region(Region.of(this.region))
-                    .build();
+                    .region(Region.of(this.region));
+
+            // Support LocalStack and integration testing by overriding the default AWS service endpoint.
+            // Malformed URIs are caught to prevent application startup failure.
+            if (!this.endpoint.isBlank()) {
+                try {
+                    builder = builder.endpointOverride(URI.create(this.endpoint));
+                    LOG.info("SNS endpoint override active: {}", this.endpoint);
+                } catch (Exception e) {
+                    LOG.warn("Invalid aws.sns.endpoint '{}', ignoring.", this.endpoint);
+                }
+            }
+
+            this.snsClient = builder.build();
         } else {
             this.snsClient = null;
         }
