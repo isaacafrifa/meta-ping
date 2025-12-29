@@ -3,11 +3,11 @@ package com.iam.metaping.integration;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.iam.metaping.function.MetaPingFunction;
 import com.iam.metaping.integration.helpers.TestS3EventFactory;
+import com.iam.metaping.integration.helpers.AbstractLocalStackIT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.Assumptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -16,10 +16,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.DockerClientFactory;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
@@ -32,7 +28,6 @@ import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SetQueueAttributesRequest;
 
-import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -49,9 +44,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class MetaPingApplicationTests {
-    private static final boolean DOCKER_AVAILABLE;
-    private static final String LOCALSTACK_ACCOUNT_ID = "000000000000"; // LocalStack default account id
+class MetaPingApplicationTests extends AbstractLocalStackIT {
 
     // Test constants
     private static final String TOPIC_NAME = "meta-ping-test";
@@ -90,15 +83,6 @@ class MetaPingApplicationTests {
 
     // Start LocalStack once for the test class (only if Docker is available)
     static {
-        boolean available;
-        try {
-            DockerClientFactory.instance().client();
-            available = true;
-        } catch (Throwable t) {
-            available = false;
-        }
-        DOCKER_AVAILABLE = available;
-
         if (DOCKER_AVAILABLE) {
             localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.8"))
                     .withServices(SNS, SQS);
@@ -111,17 +95,14 @@ class MetaPingApplicationTests {
 
     // Provision SNS topic and SQS queue and wire the subscription (once per class)
     private static void setupStaticInfra() {
-        AwsBasicCredentials creds = AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey());
-        Region region = Region.of(localstack.getRegion());
-
-        try (SnsClient sns = buildSnsClient(creds, region);
-             SqsClient sqs = buildSqsClient(creds, region)) {
+        try (SnsClient sns = buildSnsClient(localstack);
+             SqsClient sqs = buildSqsClient(localstack)) {
 
             // Create SNS topic and SQS queue for the test
             topicArn = sns.createTopic(CreateTopicRequest.builder().name(TOPIC_NAME).build()).topicArn();
             queueUrl = sqs.createQueue(CreateQueueRequest.builder().queueName(QUEUE_NAME).build()).queueUrl();
 
-            String queueArn = getQueueArnWithFallback(sqs, queueUrl, QUEUE_NAME);
+            String queueArn = getQueueArnWithFallback(sqs, queueUrl);
 
             // Allow SNS topic to send to the SQS queue
             applyQueuePolicyAllowSns(sqs, queueUrl, queueArn, topicArn);
@@ -135,31 +116,10 @@ class MetaPingApplicationTests {
         }
     }
 
-    // Build SDK v2 SNS client pointing to LocalStack
-    private static SnsClient buildSnsClient(AwsBasicCredentials creds, Region region) {
-        return SnsClient.builder()
-                .endpointOverride(localstack.getEndpointOverride(SNS))
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .build();
-    }
-
-    // Build SDK v2 SQS client pointing to LocalStack
-    private static SqsClient buildSqsClient(AwsBasicCredentials creds, Region region) {
-        return SqsClient.builder()
-                .endpointOverride(localstack.getEndpointOverride(SQS))
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .build();
-    }
-
 
 
     @BeforeAll
     void setupInfra() {
-        // Skip the test suite gracefully if Docker is not available
-        Assumptions.assumeTrue(DOCKER_AVAILABLE, "Docker is not available; skipping LocalStack integration test");
-
         // Provide credentials for DefaultCredentialsProvider so SnsPublisher can publish to LocalStack
         System.setProperty("aws.accessKeyId", localstack.getAccessKey());
         System.setProperty("aws.secretAccessKey", localstack.getSecretKey());
@@ -169,8 +129,7 @@ class MetaPingApplicationTests {
     @Test
     @DisplayName("S3 event triggers metadata extraction and publishes to SNS (verified via SQS subscription)")
     void shouldPublishMetadataToSns() {
-       // Given: a synthetic S3 event representing an uploaded file
-        Assumptions.assumeTrue(DOCKER_AVAILABLE, "Docker is not available; skipping LocalStack integration test");
+        // Given: a synthetic S3 event representing an uploaded file
         S3Event event = TestS3EventFactory.create(
                 "meta-ping-bucket",
                 EXPECTED_FILE_NAME,
@@ -181,15 +140,7 @@ class MetaPingApplicationTests {
         function.apply(event);
 
         // Then: the SNS notification should be delivered to the subscribed SQS queue
-        AwsBasicCredentials creds = AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey());
-        Region region = Region.of(localstack.getRegion());
-        URI sqsEndpoint = localstack.getEndpointOverride(SQS);
-
-        try (SqsClient sqs = SqsClient.builder()
-                .endpointOverride(sqsEndpoint)
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .build()) {
+        try (SqsClient sqs = buildSqsClient(localstack)) {
 
             String qUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(QUEUE_NAME).build()).queueUrl();
 
@@ -210,10 +161,10 @@ class MetaPingApplicationTests {
     }
 
     // LocalStack sometimes delays QueueArn; build a deterministic fallback ARN when missing
-    private static String getQueueArnWithFallback(SqsClient sqs, String queueUrl, String queueName) {
+    private static String getQueueArnWithFallback(SqsClient sqs, String queueUrl) {
         String arn = getQueueArn(sqs, queueUrl);
         if (arn == null || arn.isBlank()) {
-            arn = String.format("arn:aws:sqs:%s:%s:%s", localstack.getRegion(), LOCALSTACK_ACCOUNT_ID, queueName);
+            arn = String.format("arn:aws:sqs:%s:%s:%s", localstack.getRegion(), LOCALSTACK_ACCOUNT_ID, MetaPingApplicationTests.QUEUE_NAME);
         }
         return arn;
     }

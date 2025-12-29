@@ -3,8 +3,7 @@ package com.iam.metaping.integration;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.iam.metaping.function.MetaPingFunction;
 import com.iam.metaping.integration.helpers.TestS3EventFactory;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
+import com.iam.metaping.integration.helpers.AbstractLocalStackIT;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -12,14 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -49,9 +44,7 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class MetaPingNotificationsDisabledIT {
-
-    private static final boolean DOCKER_AVAILABLE;
+class MetaPingNotificationsDisabledIT extends AbstractLocalStackIT {
 
     private static final String TOPIC_NAME = "meta-ping-disabled-test";
     private static final String QUEUE_NAME = "meta-ping-disabled-queue";
@@ -82,15 +75,6 @@ class MetaPingNotificationsDisabledIT {
     }
 
     static {
-        boolean available;
-        try {
-            DockerClientFactory.instance().client();
-            available = true;
-        } catch (Throwable t) {
-            available = false;
-        }
-        DOCKER_AVAILABLE = available;
-
         if (DOCKER_AVAILABLE) {
             localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.8"))
                     .withServices(SNS, SQS);
@@ -102,19 +86,8 @@ class MetaPingNotificationsDisabledIT {
     }
 
     private static void setupStaticInfra() {
-        AwsBasicCredentials creds = AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey());
-        Region region = Region.of(localstack.getRegion());
-
-        try (SnsClient sns = SnsClient.builder()
-                .endpointOverride(localstack.getEndpointOverride(SNS))
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .build();
-             SqsClient sqs = SqsClient.builder()
-                     .endpointOverride(localstack.getEndpointOverride(SQS))
-                     .region(region)
-                     .credentialsProvider(StaticCredentialsProvider.create(creds))
-                     .build()) {
+        try (SnsClient sns = buildSnsClient(localstack);
+             SqsClient sqs = buildSqsClient(localstack)) {
 
             // Create a topic and a queue. We DO subscribe the queue to topic so that
             // if anything were published by mistake, it would be observable in SQS.
@@ -157,16 +130,9 @@ class MetaPingNotificationsDisabledIT {
         }
     }
 
-    @BeforeAll
-    void ensureDocker() {
-        Assumptions.assumeTrue(DOCKER_AVAILABLE, "Docker is not available; skipping LocalStack integration test");
-    }
-
     @Test
     @DisplayName("When notifications are disabled, function still returns metadata but no message reaches SQS")
     void shouldReturnMetadataWhenNotificationsDisabled() {
-        Assumptions.assumeTrue(DOCKER_AVAILABLE, "Docker is not available; skipping LocalStack integration test");
-
         // Given: a valid S3 event
         S3Event event = TestS3EventFactory.create(
                 "meta-ping-bucket",
@@ -183,14 +149,7 @@ class MetaPingNotificationsDisabledIT {
         assertTrue(result.contains(EXPECTED_FILE_TYPE));
 
         // And: no messages should be present in SQS
-        AwsBasicCredentials creds = AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey());
-        Region region = Region.of(localstack.getRegion());
-
-        try (SqsClient sqs = SqsClient.builder()
-                .endpointOverride(localstack.getEndpointOverride(SQS))
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(creds))
-                .build()) {
+        try (SqsClient sqs = buildSqsClient(localstack)) {
 
             String qUrl = sqs.getQueueUrl(GetQueueUrlRequest.builder().queueName(QUEUE_NAME).build()).queueUrl();
             boolean anyMessage = pollAnyMessage(sqs, qUrl);
