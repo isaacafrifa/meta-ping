@@ -114,4 +114,83 @@ class SnsPublisherTests {
         assertFalse(result);
         verify(spyPublisher, times(1)).publish(subject, payload);
     }
+
+    @Test
+    @DisplayName("publish: blank subject string -> subject omitted but publish succeeds")
+    void blankSubjectOmitted() {
+        // Given
+        SnsPublisher publisher = new SnsPublisher(configuredProps());
+        SnsClient sns = mock(SnsClient.class);
+        ReflectionTestUtils.setField(publisher, "snsClient", sns);
+        when(sns.publish(any(PublishRequest.class)))
+                .thenReturn(PublishResponse.builder().messageId("mid-3").build());
+
+        // When
+        boolean ok = publisher.publish("   ", "Body");
+
+        // Then
+        assertTrue(ok);
+        ArgumentCaptor<PublishRequest> captor = ArgumentCaptor.forClass(PublishRequest.class);
+        verify(sns).publish(captor.capture());
+        PublishRequest req = captor.getValue();
+        assertEquals("Body", req.message());
+        assertNull(req.subject(), "Subject must be null when blank");
+    }
+
+    @Test
+    @DisplayName("publish: SNS client throws -> returns false")
+    void publishExceptionPath() {
+        // Given
+        SnsPublisher publisher = new SnsPublisher(configuredProps());
+        SnsClient sns = mock(SnsClient.class);
+        ReflectionTestUtils.setField(publisher, "snsClient", sns);
+        when(sns.publish(any(PublishRequest.class)))
+                .thenThrow(new RuntimeException("boom"));
+
+        // When
+        boolean ok = publisher.publish("Sub", "Body");
+
+        // Then
+        assertFalse(ok);
+        verify(sns, times(1)).publish(any(PublishRequest.class));
+    }
+
+    @Test
+    @DisplayName("constructor: invalid endpoint -> caught and client still built")
+    void constructorWithInvalidEndpointCaught() {
+        // Given
+        SnsProperties props = configuredProps();
+        props.setEndpoint("http://::bad"); // invalid URI
+
+        // When
+        SnsPublisher publisher = new SnsPublisher(props);
+
+        // Then: since topic & region are set, client should still be built despite bad endpoint
+        Object client = ReflectionTestUtils.getField(publisher, "snsClient");
+        assertNotNull(client);
+    }
+
+    @Test
+    @DisplayName("not configured: only topic provided -> returns false")
+    void onlyTopicProvided() {
+        // Given
+        SnsProperties props = new SnsProperties();
+        props.setTopicArn("arn:aws:sns:eu-west-1:123456789012:test-topic");
+        SnsPublisher publisher = new SnsPublisher(props);
+
+        // When / Then
+        assertFalse(publisher.publish("S", "Body"));
+    }
+
+    @Test
+    @DisplayName("not configured: only region provided -> returns false")
+    void onlyRegionProvided() {
+        // Given
+        SnsProperties props = new SnsProperties();
+        props.setRegion("eu-west-1");
+        SnsPublisher publisher = new SnsPublisher(props);
+
+        // When / Then
+        assertFalse(publisher.publish("S", "Body"));
+    }
 }
