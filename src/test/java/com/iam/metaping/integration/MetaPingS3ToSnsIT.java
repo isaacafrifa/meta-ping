@@ -44,7 +44,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class MetaPingApplicationTests extends AbstractLocalStackIT {
+class MetaPingS3ToSnsIT extends AbstractLocalStackIT {
 
     // Test constants
     private static final String TOPIC_NAME = "meta-ping-test";
@@ -164,7 +164,7 @@ class MetaPingApplicationTests extends AbstractLocalStackIT {
     private static String getQueueArnWithFallback(SqsClient sqs, String queueUrl) {
         String arn = getQueueArn(sqs, queueUrl);
         if (arn == null || arn.isBlank()) {
-            arn = String.format("arn:aws:sqs:%s:%s:%s", localstack.getRegion(), LOCALSTACK_ACCOUNT_ID, MetaPingApplicationTests.QUEUE_NAME);
+            arn = String.format("arn:aws:sqs:%s:%s:%s", localstack.getRegion(), LOCALSTACK_ACCOUNT_ID, MetaPingS3ToSnsIT.QUEUE_NAME);
         }
         return arn;
     }
