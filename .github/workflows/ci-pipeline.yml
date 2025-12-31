@@ -9,41 +9,132 @@ on:
       - 'README.md'
       - 'enhancement-todos.md'
 
+# Cancel in-progress CI for the same branch/ref when newer commits arrive
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege for this workflow; elevate only if needed in jobs
+permissions:
+  contents: read
+
 jobs:
-  # Combined Build, Test, and Quality Analysis for efficiency
-  build-test-analyze:
+  # Compile & Unit tests (Surefire) on push to main
+  compile-and-unit-test:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
     steps:
-    # Check out the repository code with full history for SonarCloud
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    # Set up Java 17 environment for the build
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
 
-    # Build, test, and run Sonar analysis
-    - name: Build, Test and Analyze
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B clean verify sonar:sonar
-      timeout-minutes: 20 # timeout for just this step
+      - name: Run unit tests (Surefire)
+        # -B batch mode, -ntp no transfer progress → cleaner CI logs
+        run: mvn -B -ntp clean test
+        timeout-minutes: 15
 
-    # Upload test reports if tests fail
-    - name: Upload Test Reports (if failure)
-      uses: actions/upload-artifact@v4
-      if: failure()  # If the previous step (i.e. mvn verify) fails, failure() evaluates to true
-      with:
-        name: test-reports
-        path: target/surefire-reports/
+      - name: Upload compiled classes
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-target
+          path: target/
+          retention-days: 1
+
+      - name: Upload Surefire reports (if failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+  # Integration tests (Failsafe). Requires Docker for Testcontainers/LocalStack
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: compile-and-unit-test
+    timeout-minutes: 35
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Download compiled classes
+        uses: actions/download-artifact@v4
+        with:
+          name: build-target
+          path: target/
+
+      - name: Run integration tests (Failsafe)
+        # Run only ITs: skip unit tests, run Failsafe ITs. No 'clean' to keep downloaded artifact.
+        run: mvn -B -ntp verify -DskipTests=true -DskipITs=false
+        timeout-minutes: 25
+
+      - name: Upload combined coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-target-combined
+          path: target/
+          retention-days: 1
+
+      - name: Upload Failsafe reports (if failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failsafe-reports
+          path: target/failsafe-reports/
+
+      - name: Upload Surefire reports (if failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: surefire-reports-from-it
+          path: target/surefire-reports/
+
+  # SonarCloud analysis (Quality Gate)
+  sonar:
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Download combined coverage data
+        uses: actions/download-artifact@v4
+        with:
+          name: build-target-combined
+          path: target/
+
+      - name: SonarCloud analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Run verify to ensure JaCoCo reports are processed, then run sonar
+        run: mvn -B -ntp -DskipITs=true -DskipTests=true verify sonar:sonar
 
   # Scan for security issues and secrets (Runs in parallel)
   security-scan:
