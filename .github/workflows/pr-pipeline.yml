@@ -16,6 +16,9 @@ on:
 jobs:
   compile-and-unit-test:
     runs-on: ubuntu-latest
+    # Restrict to read-only access for repository contents in case of vulnerable dependencies
+    permissions:
+      contents: read
     concurrency:
       # Cancel older runs of this job for the same PR when a new commit arrives
       group: pr-${{ github.ref }}-compile-unit
@@ -48,6 +51,9 @@ jobs:
   sonar:
     runs-on: ubuntu-latest
     needs: compile-and-unit-test
+    # Restrict to read-only access for repository contents in case of vulnerable dependencies
+    permissions:
+      contents: read
     concurrency:
       # Independently cancel stale Sonar runs per PR
       group: pr-${{ github.ref }}-sonar
@@ -76,6 +82,9 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     needs: [ compile-and-unit-test ]
+    # Restrict to read-only access for repository contents in case of vulnerable dependencies
+    permissions:
+      contents: read
     timeout-minutes: 10 
     steps:
       - name: Checkout code
