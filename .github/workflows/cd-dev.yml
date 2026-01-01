@@ -12,6 +12,9 @@ jobs:
     # Only run if the CI pipeline was successful
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    # Restrict to read-only access for repository contents in case of vulnerable dependencies
+    permissions:
+      contents: read
     environment: dev  # Use the dev environment we have created
     
     steps:

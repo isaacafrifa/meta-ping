@@ -12,6 +12,9 @@ on:
 jobs:
   deploy-to-prod:
     runs-on: ubuntu-latest
+    # Restrict to read-only access for repository contents in case of vulnerable dependencies
+    permissions:
+      contents: read
     environment: prod  # Use the prod environment you've created with required approvals
     
     steps:

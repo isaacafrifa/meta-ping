@@ -36,6 +36,7 @@
     <testcontainers.version>1.20.3</testcontainers.version>
     <sonar.version>5.5.0.6356</sonar.version>
     <jacoco.version>0.8.12</jacoco.version>
+    <maven.tests.plugins.version>3.5.0</maven.tests.plugins.version>
     <!-- SonarCloud Configuration -->
     <sonar.projectKey>isaacafrifa_meta-ping</sonar.projectKey>
     <sonar.organization>iam-group</sonar.organization>
@@ -129,6 +130,38 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
+      <!-- Run unit tests with Surefire (default includes: *Test, *Tests, *TestCase) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven.tests.plugins.version}</version>
+        <configuration>
+          <!-- Ensure integration-test suffixes are not picked up here -->
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+            <exclude>**/*ITCase.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <!-- Run integration tests with Failsafe in the verify phase (includes: *IT) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${maven.tests.plugins.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- SonarQube Scanner for Maven: enables running `mvn sonar:sonar` locally and in CI -->
       <plugin>
         <groupId>org.sonarsource.scanner.maven</groupId>
@@ -140,14 +173,24 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${jacoco.version}</version>
         <executions>
+          <!-- Attach JaCoCo agent for unit tests (Surefire) -->
           <execution>
+            <id>prepare-agent</id>
             <goals>
               <goal>prepare-agent</goal>
             </goals>
           </execution>
+          <!-- Attach JaCoCo agent for integration tests (Failsafe) -->
+          <execution>
+            <id>prepare-agent-integration</id>
+            <goals>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+          </execution>
+          <!-- Generate a single coverage report after all tests (unit + IT) -->
           <execution>
             <id>report</id>
-            <phase>test</phase>
+            <phase>verify</phase>
             <goals>
               <goal>report</goal>
             </goals>
